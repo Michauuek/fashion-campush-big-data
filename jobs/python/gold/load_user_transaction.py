@@ -25,7 +25,7 @@ def load(spark, customer_path, transaction_path, output_path):
         (col("last_order_date").cast("long") - col("first_order_date").cast("long")) / col("total_orders")
     )
 
-    result.write.mode("overwrite").csv(output_path).format("csv").option("header", "true").save(output_path)
+    result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)
 
 
 if __name__ == "__main__":
