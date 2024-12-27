@@ -13,7 +13,7 @@ def normalize(spark, input_path, output_path):
         col("event_id"),
         col("traffic_source"),
         col("product_id"),
-        col("quantity"),
+        col("quantity").alias("cart_quantity"),
         col("item_price"),
         col("payment_status"),
         col("search_keywords"),

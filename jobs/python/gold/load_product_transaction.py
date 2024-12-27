@@ -24,7 +24,7 @@ def load(spark, product_path, transaction_path, output_path):
         first("master_category").alias("master_category")
     )
 
-    result.write.mode("overwrite").csv(output_path)
+    result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)
 
 
 if __name__ == "__main__":

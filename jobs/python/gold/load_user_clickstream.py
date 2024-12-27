@@ -1,15 +1,19 @@
-import sys
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, avg, count, sum, min, max, when
 
 from jobs.python.fashion_campus_common import silver_path, gold_path
+from pyspark.sql.functions import col, count, avg, sum, min, max, when
 
 
-def load(spark, clickstream_path, transaction_path, customer_path,  output_path):
+def load(spark, clickstream_path, transaction_path, customer_path, output_path):
     clickstream_df = spark.read.csv(clickstream_path, header=True, inferSchema=True)
     transaction_df = spark.read.csv(transaction_path, header=True, inferSchema=True)
     customer_df = spark.read.csv(customer_path, header=True, inferSchema=True)
+
+    clickstream_df = clickstream_df.withColumn("event_time", col("event_time").cast("timestamp"))
+
+    session_duration_df = clickstream_df.groupBy("session_id").agg(
+        (max("event_time").cast("long") - min("event_time").cast("long")).alias("session_duration")
+    )
 
     clickstream_transaction = transaction_df.join(
         clickstream_df,
@@ -21,27 +25,29 @@ def load(spark, clickstream_path, transaction_path, customer_path,  output_path)
         customer_df,
         clickstream_transaction["customer_id"] == customer_df["customer_id"],
         "inner"
-    ).drop("customer_id").drop("quantity")
+    ).drop(clickstream_transaction["customer_id"])
 
-    mobile_clickstream = clickstream_transaction_customer.filter(col("traffic_source") == "MOBILE")
+    enriched_data = clickstream_transaction_customer.join(
+        session_duration_df,
+        "session_id",
+        "inner"
+    )
+
+    mobile_clickstream = enriched_data.filter(col("traffic_source") == "MOBILE")
 
     result = mobile_clickstream.groupBy("customer_id").agg(
         count("session_id").alias("total_sessions"),
         avg("session_duration").alias("avg_session_time"),
-        count(when(col("event_name"), "click")).alias("total_clicks"),
-        avg("quantity").alias("avg_quantity_per_session"),
-        (sum("quantity") / count("session_id")).alias("conversion_rate")
+        count(when(col("event_name") == "click", 1)).alias("total_clicks"),
+        avg("cart_quantity").alias("avg_quantity_per_session"),
+        (sum("cart_quantity") / count("session_id")).alias("conversion_rate")
     )
 
-    result.write.mode("overwrite").csv(output_path)
+    result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)
 
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Gold Zone Click Stream").getOrCreate()
-
-    # args = sys.argv[1:]
-    # silver_path = args[0]
-    # gold_path = int(args[1])
 
     load(
         spark,
