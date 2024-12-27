@@ -7,7 +7,6 @@ def main(args):
         print("Usage: csv_to_bronze.py <input_path> <partition_size> <output_path>")
         sys.exit(1)
 
-    print(args)
     input_csv_path = args[0]
     partition_size = int(args[1])
     bronze_stage_path = args[2]
@@ -23,6 +22,7 @@ def main(args):
     repartitioned_df.write \
         .mode("overwrite") \
         .format("csv") \
+        .option("header", "true") \
         .save(bronze_stage_path)
 
     spark.stop()
