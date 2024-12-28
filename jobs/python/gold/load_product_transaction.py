@@ -8,7 +8,7 @@ def load(spark, product_path, transaction_path, output_path):
     product_df = spark.read.csv(product_path, header=True, inferSchema=True)
     transaction_df = spark.read.csv(transaction_path, header=True, inferSchema=True)
 
-    summer_products = product_df.filter(col("season") == "SUMMER")
+    summer_products = product_df.filter(col("season") == "Summer")
 
     product_transaction = transaction_df.join(
         summer_products,
@@ -20,8 +20,11 @@ def load(spark, product_path, transaction_path, output_path):
         count("*").alias("total_sales_count"),
         avg("total_amount").alias("avg_order_value"),
         sum("total_amount").alias("total_revenue"),
+        min("item_price").alias("min_item_price"),
+        max("item_price").alias("max_item_price"),
         avg("quantity").alias("avg_quantity"),
-        first("master_category").alias("master_category")
+        first("article_type").alias("article_type"),
+        first("product_display_name").alias("name")
     )
 
     result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)
@@ -29,10 +32,6 @@ def load(spark, product_path, transaction_path, output_path):
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Gold Zone Product Transaction").getOrCreate()
-
-    # args = sys.argv[1:]
-    # silver_path = args[0]
-    # gold_path = int(args[1])
 
     load(
         spark,

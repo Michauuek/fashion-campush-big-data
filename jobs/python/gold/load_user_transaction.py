@@ -1,6 +1,6 @@
 from jobs.python.fashion_campus_common import silver_path, gold_path
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, sum, min, max
+from pyspark.sql.functions import col, count, sum, min, max, first
 
 
 def load(spark, customer_path, transaction_path, output_path):
@@ -15,14 +15,16 @@ def load(spark, customer_path, transaction_path, output_path):
 
     result = user_transaction.groupBy("customer_id").agg(
         count("*").alias("total_orders"),
+        count("product_id").alias("total_products"),
         sum("total_amount").alias("total_spent"),
         min("transaction_date").alias("first_order_date"),
-        max("transaction_date").alias("last_order_date")
+        max("transaction_date").alias("last_order_date"),
+        first("city").alias("city")
     )
 
     result = result.withColumn(
-        "shortest_order_interval",
-        (col("last_order_date").cast("long") - col("first_order_date").cast("long")) / col("total_orders")
+        "avg_order_interval_hours",
+        ((col("last_order_date").cast("long") - col("first_order_date").cast("long")) / col("total_orders") / 3600)
     )
 
     result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)

@@ -21,8 +21,8 @@ start = PythonOperator(
 repartitioning_job_product = SparkSubmitOperator(
     task_id="repartitioning_job_product",
     conn_id="spark-conn",
-    application="jobs/python/bronze/fashion_campus_repartitioning.py",
-    application_args=["/opt/data/source/sample/product.csv", "1", "/opt/data/bronze/product"],
+    application="jobs/python/bronze/repartition_by_field.py",
+    application_args=["/opt/data/source/sample/product.csv", "season", "/opt/data/bronze/product"],
     dag=dag
 )
 

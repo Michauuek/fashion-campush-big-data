@@ -37,11 +37,12 @@ def load(spark, clickstream_path, transaction_path, customer_path, output_path):
 
     result = mobile_clickstream.groupBy("customer_id").agg(
         count("session_id").alias("total_sessions"),
-        avg("session_duration").alias("avg_session_time"),
-        count(when(col("event_name") == "click", 1)).alias("total_clicks"),
+        avg("session_duration").alias("avg_session_time_seconds"),
+        count(when(col("event_name") == "CLICK", 1)).alias("total_clicks"),
         avg("cart_quantity").alias("avg_quantity_per_session"),
-        (sum("cart_quantity") / count("session_id")).alias("conversion_rate")
-    )
+        sum(when(col("event_name") == "ADD_TO_CART", col("cart_quantity")).otherwise(0)).alias("total_added_to_cart"),
+        sum(when(col("event_name") == "BOOKING", col("cart_quantity")).otherwise(0)).alias("total_booked"),
+    ).withColumn("abandoned_carts", col("total_added_to_cart") - col("total_booked"))
 
     result.write.mode("overwrite").format("csv").option("header", "true").save(output_path)
 
