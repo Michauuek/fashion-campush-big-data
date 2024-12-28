@@ -50,12 +50,6 @@ repartitioning_job_transaction_new = SparkSubmitOperator(
     dag=dag
 )
 
-python_job = SparkSubmitOperator(
-    task_id="python_job",
-    conn_id="spark-conn",
-    application="jobs/python/wordcountjob.py",
-    dag=dag
-)
 
 end = PythonOperator(
     task_id="end",
@@ -63,4 +57,4 @@ end = PythonOperator(
     dag=dag
 )
 
-start >> python_job >> repartitioning_job_product >> repartitioning_job_customer >> repartitioning_job_click_stream_new >> repartitioning_job_transaction_new >> end
+start >> repartitioning_job_product >> repartitioning_job_customer >> repartitioning_job_click_stream_new >> repartitioning_job_transaction_new >> end
